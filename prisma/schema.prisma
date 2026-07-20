@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SmsStatus {
+  SENT
+  FAILED
+}
+
+model SmsLog {
+  id                 String    @id @default(cuid())
+
+  warrantyId         String    @unique
+
+  name               String
+  phone              String
+
+  brand              String
+  model              String
+  imei               String
+
+  warrantyPeriod     String
+  workItem           String
+
+  message            String
+
+  status             SmsStatus
+
+  providerMessageId  String?
+  providerResponse   String?
+
+  sentAt             DateTime  @default(now())
+
+  requestId String @unique @default(cuid())
+}
