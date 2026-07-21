@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
 
@@ -14,6 +15,14 @@ const pageTitles: Record<string, string> = {
 export function Header() {
   const pathname = usePathname();
   const title = pageTitles[pathname] ?? "Dashboard";
+  const [userName, setUserName] = useState<string>("Admin");
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setUserName(d.data.name); })
+      .catch(() => {});
+  }, []);
 
   return (
     <header className="flex h-14 items-center justify-between border-b bg-background px-6">
@@ -22,7 +31,7 @@ export function Header() {
         <div className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <User className="size-3.5" />
         </div>
-        <span className="text-sm font-medium">Admin</span>
+        <span className="text-sm font-medium">{userName}</span>
       </div>
     </header>
   );

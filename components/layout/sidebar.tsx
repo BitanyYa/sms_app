@@ -76,7 +76,7 @@ export function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="border-t p-3">
+      <div className="border-t p-3 pb-16">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-foreground"
