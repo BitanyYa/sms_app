@@ -43,7 +43,7 @@ export type SmsStatus = "PENDING" | "SENT" | "FAILED";
 export type SmsLog = {
   id: string;
   warrantyId: string;
-  warranty?: Warranty;
+  warranty?: Warranty & { customer: Customer };
   phone: string;
   message: string;
   status: SmsStatus;
@@ -51,20 +51,28 @@ export type SmsLog = {
   providerResponse: string | null;
   sentAt: string;
   createdAt: string;
+  deletedAt: string | null;
+};
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+export type Pagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
 };
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 export type DashboardStats = {
-  totalWarranties: number;
-  totalCustomers: number;
+  totalSms: number;
   smsSent: number;
-  smsPending: number;
   smsFailed: number;
+  smsPending: number;
+  smsSentToday: number;
 };
 
 export type DashboardData = {
   stats: DashboardStats;
-  recentWarranties: (Warranty & { customer: Customer })[];
   recentSmsLogs: (SmsLog & { warranty: Warranty & { customer: Customer } })[];
 };
 
