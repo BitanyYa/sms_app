@@ -8,37 +8,31 @@ export async function GET() {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
 
-  const [
-    totalWarranties,
-    totalCustomers,
-    smsSent,
-    smsPending,
-    smsFailed,
-    recentWarranties,
-    recentSmsLogs,
-  ] = await Promise.all([
-    prisma.warranty.count(),
-    prisma.customer.count(),
-    prisma.smsLog.count({ where: { status: "SENT" } }),
-    prisma.smsLog.count({ where: { status: "PENDING" } }),
-    prisma.smsLog.count({ where: { status: "FAILED" } }),
-    prisma.warranty.findMany({
-      take: 5,
-      orderBy: { registeredAt: "desc" },
-      include: { customer: true },
-    }),
-    prisma.smsLog.findMany({
-      take: 5,
-      orderBy: { sentAt: "desc" },
-      include: { warranty: { include: { customer: true } } },
-    }),
-  ]);
+  // Start of today (server time)
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [totalSms, smsSent, smsFailed, smsPending, smsSentToday, recentSmsLogs] =
+    await Promise.all([
+      prisma.smsLog.count({ where: { deletedAt: null } }),
+      prisma.smsLog.count({ where: { deletedAt: null, status: "SENT" } }),
+      prisma.smsLog.count({ where: { deletedAt: null, status: "FAILED" } }),
+      prisma.smsLog.count({ where: { deletedAt: null, status: "PENDING" } }),
+      prisma.smsLog.count({
+        where: { deletedAt: null, status: "SENT", sentAt: { gte: todayStart } },
+      }),
+      prisma.smsLog.findMany({
+        where: { deletedAt: null },
+        take: 10,
+        orderBy: { sentAt: "desc" },
+        include: { warranty: { include: { customer: true } } },
+      }),
+    ]);
 
   return NextResponse.json({
     success: true,
     data: {
-      stats: { totalWarranties, totalCustomers, smsSent, smsPending, smsFailed },
-      recentWarranties,
+      stats: { totalSms, smsSent, smsFailed, smsPending, smsSentToday },
       recentSmsLogs,
     },
   });
