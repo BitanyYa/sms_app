@@ -6,34 +6,72 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  ADMIN
+  USER
+}
+
 enum SmsStatus {
+  PENDING
   SENT
   FAILED
 }
 
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id            String     @id @default(cuid())
+  name          String
+  phone         String     @unique
+  email         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  warranties    Warranty[]
+}
+
+model Warranty {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  brand          String
+  model          String
+  imei           String    @unique
+  warrantyPeriod String
+  workItem       String
+  
+  registeredAt   DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  smsLogs        SmsLog[]
+
+  @@index([customerId])
+  @@index([imei])
+}
+
 model SmsLog {
   id                 String    @id @default(cuid())
+  warrantyId         String
+  warranty           Warranty  @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
 
-  warrantyId         String    @unique
-
-  name               String
   phone              String
-
-  brand              String
-  model              String
-  imei               String
-
-  warrantyPeriod     String
-  workItem           String
-
   message            String
-
-  status             SmsStatus
+  status             SmsStatus @default(PENDING)
 
   providerMessageId  String?
   providerResponse   String?
 
   sentAt             DateTime  @default(now())
+  createdAt          DateTime  @default(now())
 
-  requestId String @unique @default(cuid())
+  @@index([warrantyId])
+  @@index([status])
 }
