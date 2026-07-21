@@ -105,7 +105,7 @@ function PasswordForm() {
     const result = PasswordSchema.safeParse({ currentPassword, newPassword, confirmPassword });
     if (!result.success) {
       const fieldErrors: PasswordErrors = {};
-      result.error.issues.forEach((issue) => { fieldErrors[issue.path[0] as keyof PasswordErrors] = issue.message; });
+      result.error.issues.forEach((err) => { fieldErrors[err.path[0] as keyof PasswordErrors] = err.message; });
       setErrors(fieldErrors);
       return;
     }

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { RefreshCw, ShieldCheck, Users, MessageSquareText, CheckCircle2, XCircle } from "lucide-react";
+import {
+  RefreshCw, MessageSquareText, CheckCircle2, XCircle, Clock, CalendarCheck,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,21 +35,48 @@ export default function DashboardPage() {
 
   const statCards = data
     ? [
-        { label: "Total Warranties", value: data.stats.totalWarranties, icon: ShieldCheck, color: "text-blue-600" },
-        { label: "Total Customers", value: data.stats.totalCustomers, icon: Users, color: "text-violet-600" },
-        { label: "SMS Sent", value: data.stats.smsSent, icon: CheckCircle2, color: "text-emerald-600" },
-        { label: "SMS Pending", value: data.stats.smsPending, icon: MessageSquareText, color: "text-amber-600" },
-        { label: "SMS Failed", value: data.stats.smsFailed, icon: XCircle, color: "text-destructive" },
+        {
+          label: "Total SMS",
+          value: data.stats.totalSms,
+          icon: MessageSquareText,
+          color: "text-blue-600",
+        },
+        {
+          label: "Sent",
+          value: data.stats.smsSent,
+          icon: CheckCircle2,
+          color: "text-emerald-600",
+        },
+        {
+          label: "Failed",
+          value: data.stats.smsFailed,
+          icon: XCircle,
+          color: "text-destructive",
+        },
+        {
+          label: "Pending",
+          value: data.stats.smsPending,
+          icon: Clock,
+          color: "text-amber-600",
+        },
+        {
+          label: "Sent Today",
+          value: data.stats.smsSentToday,
+          icon: CalendarCheck,
+          color: "text-violet-600",
+        },
       ]
     : [];
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Overview</h2>
-          <p className="text-sm text-muted-foreground">Welcome back, Admin</p>
+          <p className="text-sm text-muted-foreground">
+            SMS delivery summary for Yonas Mobile
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
           <RefreshCw className={loading ? "animate-spin" : ""} />
@@ -55,15 +84,19 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* Stats grid */}
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+          ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center gap-3 py-12">
           <p className="text-sm text-destructive">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchData}>Retry</Button>
+          <Button variant="outline" size="sm" onClick={fetchData}>
+            Retry
+          </Button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -81,65 +114,55 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Recent activity */}
+      {/* Recent SMS activity */}
       {!loading && !error && data && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Recent Warranties */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent Warranties</CardTitle>
-              <CardDescription>Latest warranty registrations</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {data.recentWarranties.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No warranties yet</p>
-              ) : (
-                data.recentWarranties.map((w) => (
-                  <div key={w.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Recent SMS</CardTitle>
+            <CardDescription>Last 10 messages sent</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.recentSmsLogs.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No SMS logs yet
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {data.recentSmsLogs.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                  >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{w.customer.name}</p>
-                      <p className="text-xs text-muted-foreground">{w.brand} {w.model}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{w.imei}</p>
-                    </div>
-                    <p className="shrink-0 text-xs text-muted-foreground">
-                      {format(new Date(w.registeredAt), "MMM d")}
-                    </p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent SMS */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent SMS</CardTitle>
-              <CardDescription>Latest SMS activity</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {data.recentSmsLogs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No SMS logs yet</p>
-              ) : (
-                data.recentSmsLogs.map((s) => (
-                  <div key={s.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{s.warranty.customer.name}</p>
-                      <p className="text-xs text-muted-foreground">{s.phone}</p>
+                      <p className="truncate text-sm font-medium">
+                        {s.warranty.customer.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.phone} &middot; {s.warranty.brand} {s.warranty.model}
+                      </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <Badge variant={s.status === "SENT" ? "success" : s.status === "FAILED" ? "destructive" : "secondary"}>
+                      <Badge
+                        variant={
+                          s.status === "SENT"
+                            ? "success"
+                            : s.status === "FAILED"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
                         {s.status}
                       </Badge>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(s.sentAt), "MMM d")}
+                        {format(new Date(s.sentAt), "MMM d, HH:mm")}
                       </p>
                     </div>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
