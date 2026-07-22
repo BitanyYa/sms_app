@@ -42,6 +42,7 @@ model Warranty {
   customerId     String
   customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   
+  warrantyId     String?   @unique
   brand          String
   model          String
   imei           String    @unique

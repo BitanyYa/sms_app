@@ -27,6 +27,7 @@ export type Warranty = {
   id: string;
   customerId: string;
   customer?: Customer;
+  warrantyId: string | null;
   brand: string;
   model: string;
   imei: string;

@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 type SmsLogRow = SmsLog & {
   warranty: {
     id: string;
+    warrantyId: string | null;
     brand: string;
     model: string;
     imei: string;
@@ -368,6 +369,7 @@ export default function SmsPage() {
                     <TableHead>Phone</TableHead>
                     <TableHead>Product</TableHead>
                     <TableHead>IMEI</TableHead>
+                    <TableHead>Warranty ID</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Sent At</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -392,6 +394,9 @@ export default function SmsPage() {
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {sms.warranty.imei}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {sms.warranty.warrantyId ?? <span className="italic text-muted-foreground/50">—</span>}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={sms.status} />

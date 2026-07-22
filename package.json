@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.8.0",
     "@swc/helpers": "^0.5.23",
     "axios": "^1.18.1",
@@ -25,6 +26,7 @@
     "jose": "^6.2.3",
     "lucide-react": "^1.25.0",
     "next": "16.2.10",
+    "pg": "^8.22.0",
     "prisma": "^7.8.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",

@@ -6,6 +6,7 @@ import { sendSms } from "@/lib/afromessage";
 // This endpoint is called by external systems (e.g. warranty registration software)
 // It does NOT require dashboard auth,  it uses its own schema validation
 const WarrantySchema = z.object({
+  warrantyId: z.string().min(1),
   name: z.string().min(1),
   phone: z.string().min(1),
   brand: z.string().min(1),
@@ -30,24 +31,10 @@ export async function POST(req: NextRequest) {
     const warranty = WarrantySchema.parse(body);
 
     // Step 2: Duplicate protection — prevent sending multiple SMS for the same warranty registration.
-    //
-    // TEMPORARY: Currently using IMEI as the deduplication key because the external warranty
-    // system has not yet confirmed whether it sends a unique Warranty ID / Registration ID
-    // per transaction.
-    //
-    // LIMITATION: IMEI identifies a device, not a warranty transaction. This means only ONE
-    // warranty registration will ever be processed per device. If the same device is legitimately
-    // re-registered (e.g. after a repair, resale, or renewed warranty), the second registration
-    // will be silently treated as a duplicate and no SMS will be sent.
-    //
-    // TODO: Once confirmed with the warranty system developers, replace the IMEI check with a
-    // unique transaction-level identifier (e.g. warrantyId, registrationId, transactionId).
-    // Steps to refactor:
-    //   1. Add the new field to WarrantySchema and the Warranty model (with @unique in schema.prisma)
-    //   2. Run `prisma migrate dev` to apply the schema change
-    //   3. Replace `where: { imei: warranty.imei }` with `where: { warrantyId: warranty.warrantyId }`
+    // Uses the external warranty system's warrantyId as the deduplication key, which is unique
+    // per transaction and won't block legitimate re-registrations of the same device.
     const existingWarranty = await prisma.warranty.findUnique({
-      where: { imei: warranty.imei },
+      where: { warrantyId: warranty.warrantyId },
       include: { smsLogs: { take: 1, orderBy: { createdAt: "desc" } } },
     });
 
@@ -63,8 +50,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const message = `Dear ${warranty.name},\n\nYour ${warranty.brand} ${warranty.model} warranty has been registered at Yonas Mobile.\n\nIMEI: ${warranty.imei}\nWarranty Period: ${warranty.warrantyPeriod}\nWork Item: ${warranty.workItem}\n\nThank you for choosing Yonas Mobile.`;
-
     // Upsert customer
     const customer = await prisma.customer.upsert({
       where: { phone: warranty.phone } as never,
@@ -76,6 +61,7 @@ export async function POST(req: NextRequest) {
     const warrantyRecord = await prisma.warranty.create({
       data: {
         customerId: customer.id,
+        warrantyId: warranty.warrantyId,
         brand: warranty.brand,
         model: warranty.model,
         imei: warranty.imei,
@@ -83,6 +69,24 @@ export async function POST(req: NextRequest) {
         workItem: warranty.workItem,
       },
     });
+
+    // Build bilingual SMS message
+    const message = [
+      "ውድ ደንበኛችን ስለጎበኙን እናመሰግናለን! የገዙት እቃ ሙሉ ዋስትና አለው።",
+      "",
+      `የዋስትና ቁጥር:: ${warrantyRecord.id}`,
+      "",
+      "ለእርዳታ ወይም ለአገልግሎት ሲመጡ ይህንን መልእክት ያሳዩ።",
+      "",
+      
+      "Dear Customer,",
+      "",
+      "Thank you for shopping with us! Your item comes with a full warranty.",
+      "",
+      `Warranty ID: ${warrantyRecord.id}`,
+      "Please save this message for any service or support.",
+      "",
+    ].join("\n");
 
     // Send SMS
     const smsResponse = await sendSms(warranty.phone, message);

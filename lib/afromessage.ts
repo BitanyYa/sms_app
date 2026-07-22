@@ -30,7 +30,27 @@ export async function sendSms(
     data = responseText;
     }
 
+    // Debug: log the full AfroMessage response so issues are visible in server logs
+    console.log("[AfroMessage] HTTP status:", response.status);
+    console.log("[AfroMessage] Response body:", JSON.stringify(data, null, 2));
+
     if (!response.ok) {
+      return {
+        success: false,
+        messageId: null,
+        response: JSON.stringify(data),
+      };
+    }
+
+    // AfroMessage can return HTTP 200 but still include an error in the body
+    // Check for an explicit error flag in the response
+    const hasError =
+      data?.acknowledge === "error" ||
+      data?.response?.errors?.length > 0 ||
+      data?.status === "error";
+
+    if (hasError) {
+      console.error("[AfroMessage] Provider returned an error:", JSON.stringify(data));
       return {
         success: false,
         messageId: null,
@@ -40,7 +60,7 @@ export async function sendSms(
 
     return {
       success: true,
-      messageId: data?.message_id ?? null,
+      messageId: data?.response?.message_id ?? data?.message_id ?? null,
       response: JSON.stringify(data),
     };
 

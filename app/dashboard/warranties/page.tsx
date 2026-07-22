@@ -72,6 +72,12 @@ function WarrantyDetailsDialog({ warranty }: { warranty: WarrantyWithRelations }
                 <p className="text-xs text-muted-foreground">IMEI</p>
                 <p className="font-mono text-xs">{warranty.imei}</p>
               </div>
+              {warranty.warrantyId && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">Warranty ID</p>
+                  <p className="font-mono text-xs">{warranty.warrantyId}</p>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-muted-foreground">Warranty Period</p>
                 <p>{warranty.warrantyPeriod}</p>
@@ -201,7 +207,8 @@ export default function WarrantiesPage() {
                     <TableHead>Phone</TableHead>
                     <TableHead>Product</TableHead>
                     <TableHead>IMEI</TableHead>
-                    <TableHead>Warranty</TableHead>
+                    <TableHead>Warranty ID</TableHead>
+                    <TableHead>Period</TableHead>
                     <TableHead>SMS</TableHead>
                     <TableHead>Registered</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -222,6 +229,9 @@ export default function WarrantiesPage() {
                         </TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {w.imei}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {w.warrantyId ?? <span className="text-muted-foreground/50">—</span>}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {w.warrantyPeriod}

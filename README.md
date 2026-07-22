@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Yonas Mobile — SMS Warranty System
+
+A Next.js admin dashboard for managing customer warranties and automated SMS notifications via [AfroMessage](https://afromessage.com).
+
+---
+
+## Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Database:** PostgreSQL via Supabase + Prisma ORM
+- **SMS Provider:** AfroMessage
+- **Auth:** JWT (jose) — cookie-based session
+- **UI:** Tailwind CSS v4 + shadcn/ui components
+
+---
+
+## Prerequisites
+
+- Node.js 20+
+- A PostgreSQL database (Supabase or self-hosted)
+- An AfroMessage account with a sender ID and API token
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root with the following keys:
+
+```env
+# Database
+DATABASE_URL="postgresql://..."
+
+# Auth
+JWT_SECRET="<64-byte random hex — run: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\">"
+
+# AfroMessage
+AFROMESSAGE_TOKEN="<bearer token>"
+AFROMESSAGE_IDENTIFIER="<identifier id>"
+AFROMESSAGE_SENDER="<sender name>"
+
+# External webhook auth
+API_KEY="<strong random key>"
+```
+
+---
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Push schema to database and generate Prisma client
+npx prisma migrate deploy
+npx prisma generate
+
+# Seed the initial admin user
+npm run seed
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). You will be redirected to `/dashboard` and prompted to log in.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Default seed credentials:
+- **Email:** admin@yonasmobile.com
+- **Password:** admin123456
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> Change the password immediately after first login via Settings → Change Password.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Production Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm run start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Ensure all environment variables are set in your hosting environment. The `.env` file must **not** be committed — it is git-ignored by default.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  api/              # API routes (auth, customers, sms, warranties, settings)
+  dashboard/        # Admin UI pages (dashboard, customers, sms, warranties, settings)
+  login/            # Login page
+  layout.tsx        # Root layout with font and toaster setup
+  page.tsx          # Root redirect → /dashboard
+components/
+  layout/           # Header and sidebar
+  ui/               # shadcn/ui primitives (button, card, dialog, etc.)
+lib/
+  auth.ts           # JWT sign/verify + session cookie helpers
+  afromessage.ts    # AfroMessage SMS API wrapper
+  prisma.ts         # Prisma client singleton
+  utils.ts          # Tailwind cn() utility
+middleware.ts       # Route protection — redirects unauthenticated users from /dashboard
+prisma/
+  schema.prisma     # Database schema (User, Customer, Warranty, SmsLog)
+  seed.ts           # Seeds initial admin user
+```
+
+---
+
+## External Webhook
+
+The endpoint `POST /api/warranty/send` is called by the external warranty registration software. It is authenticated via the `x-api-key` header (value must match the `API_KEY` env var), not the browser session cookie.
