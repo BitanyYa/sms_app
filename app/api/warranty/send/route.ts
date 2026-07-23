@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendSms } from "@/lib/afromessage";
 
@@ -178,12 +177,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Unique constraint violation (e.g. warrantyId already exists but has no SMS log yet)
+    // Unique constraint violation — duck-type check avoids brittle Prisma runtime imports
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
     ) {
-      const field = (error.meta?.target as string[] | undefined)?.join(", ") ?? "field";
+      const meta = (error as { meta?: { target?: string[] } }).meta;
+      const field = meta?.target?.join(", ") ?? "field";
       return NextResponse.json(
         { success: false, message: `A record with this ${field} already exists` },
         { status: 409 }
