@@ -6,17 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
-  ADMIN
-  USER
-}
-
-enum SmsStatus {
-  PENDING
-  SENT
-  FAILED
-}
-
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -28,53 +17,58 @@ model User {
 }
 
 model Customer {
-  id            String     @id @default(cuid())
-  name          String
-  phone         String     @unique
-  email         String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  warranties    Warranty[]
+  id         String     @id @default(cuid())
+  name       String
+  phone      String     @unique
+  email      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  warranties Warranty[]
 }
 
 model Warranty {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   customerId     String
-  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  warrantyId     String?   @unique
   brand          String
   model          String
-  imei           String    @unique
+  imei           String
   warrantyPeriod String
   workItem       String
-  
-  registeredAt   DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
+  registeredAt   DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  warrantyId     String?  @unique
   smsLogs        SmsLog[]
+  customer       Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
   @@index([imei])
 }
 
 model SmsLog {
-  id                 String    @id @default(cuid())
-  warrantyId         String
-  warranty           Warranty  @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
-
-  phone              String
-  message            String
-  status             SmsStatus @default(PENDING)
-
-  providerMessageId  String?
-  providerResponse   String?
-
-  sentAt             DateTime  @default(now())
-  createdAt          DateTime  @default(now())
-  deletedAt          DateTime?
+  id                String    @id @default(cuid())
+  warrantyId        String
+  phone             String
+  message           String
+  status            SmsStatus @default(PENDING)
+  providerMessageId String?
+  providerResponse  String?
+  sentAt            DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  deletedAt         DateTime?
+  warranty          Warranty  @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
 
   @@index([warrantyId])
   @@index([status])
   @@index([deletedAt])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum SmsStatus {
+  PENDING
+  SENT
+  FAILED
 }

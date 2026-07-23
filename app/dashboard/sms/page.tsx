@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
-  Search, Trash2, RefreshCw, Filter, RotateCcw,
+  Search, Trash2, RefreshCw, RotateCcw,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import type { SmsLog, SmsStatus, Pagination } from "@/app/types";
@@ -31,6 +31,16 @@ type SmsLogRow = SmsLog & {
 };
 
 type StatusFilter = "ALL" | SmsStatus;
+type SearchBy = "all" | "name" | "phone" | "imei" | "product" | "warrantyId";
+
+const SEARCH_BY_OPTIONS: { value: SearchBy; label: string }[] = [
+  { value: "all",        label: "All fields"  },
+  { value: "name",       label: "Name"        },
+  { value: "phone",      label: "Phone"       },
+  { value: "imei",       label: "IMEI"        },
+  { value: "product",    label: "Brand / Model" },
+  { value: "warrantyId", label: "Warranty ID" },
+];
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: SmsStatus }) {
@@ -119,16 +129,7 @@ function SmsDetailsDialog({ sms }: { sms: SmsLogRow }) {
             </div>
           </div>
 
-          {/* Provider info */}
-          <div className="rounded-lg border bg-muted/30 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Provider
-            </p>
-            <div className="space-y-3">
-              <DetailRow label="AfroMessage Message ID" value={sms.providerMessageId} />
-              <DetailRow label="AfroMessage Response" value={sms.providerResponse} />
-            </div>
-          </div>
+
         </div>
       </DialogContent>
     </Dialog>
@@ -191,6 +192,7 @@ export default function SmsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [searchBy, setSearchBy] = useState<SearchBy>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [page, setPage] = useState(1);
   const [retrying, setRetrying] = useState<string | null>(null);
@@ -210,6 +212,7 @@ export default function SmsPage() {
     try {
       const params = new URLSearchParams({
         search,
+        searchBy,
         status: statusFilter,
         page: String(p),
       });
@@ -226,14 +229,14 @@ export default function SmsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, page]);
+  }, [search, searchBy, statusFilter, page]);
 
   // Debounce search/filter changes, reset to page 1
   useEffect(() => {
     setPage(1);
     const t = setTimeout(() => fetchLogs(1), 350);
     return () => clearTimeout(t);
-  }, [search, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, searchBy, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Page change (no debounce)
   useEffect(() => {
@@ -287,7 +290,7 @@ export default function SmsPage() {
             <div>
               <CardTitle>SMS Logs</CardTitle>
               <CardDescription>
-                All warranty SMS messages — search, filter, and manage delivery status
+                All warranty SMS messages: search, filter, and manage delivery status
               </CardDescription>
             </div>
             <Button
@@ -304,28 +307,47 @@ export default function SmsPage() {
 
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {/* Search-by field selector */}
+            <Select
+              value={searchBy}
+              onChange={(e) => { setSearchBy(e.target.value as SearchBy); setPage(1); }}
+              className="w-full sm:w-40 shrink-0"
+            >
+              {SEARCH_BY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+
+            {/* Search input */}
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by name, phone, IMEI, or Warranty ID..."
+                placeholder={
+                  searchBy === "all"        ? "Search across all fields..." :
+                  searchBy === "name"       ? "Search by customer name..." :
+                  searchBy === "phone"      ? "Search by phone number..." :
+                  searchBy === "imei"       ? "Search by IMEI..." :
+                  searchBy === "product"    ? "Search by brand or model..." :
+                                             "Search by Warranty ID..."
+                }
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="size-4 shrink-0 text-muted-foreground" />
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              >
-                <option value="ALL">All Status</option>
-                <option value="SENT">Sent</option>
-                <option value="PENDING">Pending</option>
-                <option value="FAILED">Failed</option>
-              </Select>
-            </div>
+
+            {/* Status filter */}
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="w-full sm:w-36 shrink-0"
+            >
+              <option value="ALL">All Status</option>
+              <option value="SENT">Sent</option>
+              <option value="PENDING">Pending</option>
+              <option value="FAILED">Failed</option>
+            </Select>
           </div>
 
           {/* Loading skeletons */}
@@ -361,42 +383,70 @@ export default function SmsPage() {
 
           {/* Table */}
           {!loading && !error && logs.length > 0 && (
-            <div className="rounded-lg border">
-              <Table>
+            <div className="overflow-x-auto rounded-lg border">
+              <Table className="min-w-[860px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>IMEI</TableHead>
-                    <TableHead>Warranty ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Sent At</TableHead>
+                    <TableHead className="w-40">Customer</TableHead>
+                    <TableHead className="w-32">Phone</TableHead>
+                    <TableHead className="w-40">Product</TableHead>
+                    <TableHead className="w-40">IMEI</TableHead>
+                    <TableHead className="w-32">Warranty ID</TableHead>
+                    <TableHead className="w-24">Status</TableHead>
+                    <TableHead className="w-28">Sent At</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logs.map((sms) => (
                     <TableRow key={sms.id}>
-                      <TableCell className="font-medium">
-                        {sms.warranty.customer.name}
+                      <TableCell className="max-w-40">
+                        <span
+                          className="block truncate font-medium"
+                          title={sms.warranty.customer.name}
+                        >
+                          {sms.warranty.customer.name}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {sms.phone}
+                      <TableCell className="max-w-32 text-muted-foreground">
+                        <span className="block truncate" title={sms.phone}>
+                          {sms.phone}
+                        </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-40">
                         <div>
-                          <div className="font-medium">{sms.warranty.brand}</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div
+                            className="truncate font-medium"
+                            title={sms.warranty.brand}
+                          >
+                            {sms.warranty.brand}
+                          </div>
+                          <div
+                            className="truncate text-xs text-muted-foreground"
+                            title={sms.warranty.model}
+                          >
                             {sms.warranty.model}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {sms.warranty.imei}
+                      <TableCell className="max-w-40">
+                        <span
+                          className="block truncate font-mono text-xs text-muted-foreground"
+                          title={sms.warranty.imei}
+                        >
+                          {sms.warranty.imei}
+                        </span>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {sms.warranty.warrantyId ?? <span className="italic text-muted-foreground/50">—</span>}
+                      <TableCell className="max-w-32">
+                        {sms.warranty.warrantyId
+                          ? <span
+                              className="block truncate font-mono text-xs text-muted-foreground"
+                              title={sms.warranty.warrantyId}
+                            >
+                              {sms.warranty.warrantyId}
+                            </span>
+                          : <span className="italic text-muted-foreground/50">—</span>
+                        }
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={sms.status} />
